@@ -1,18 +1,19 @@
 # Job Finder Agent: your search profile.
-# Copy this file to profile.yaml (which is git-ignored, so it stays private) and edit it.
+# 1) Copy this file to profile.yaml (it is git-ignored, so your real details stay private).
+# 2) Replace everything marked  <-- EDIT  with your own information.
 # If profile.yaml is missing, the project falls back to this example.
 
-name: Your Name
-gmail: you@gmail.com   # inbox that receives LinkedIn job alerts
+name: Your Name                    # <-- EDIT: your full name (used to sign your cover notes)
+gmail: you@gmail.com               # <-- EDIT: the inbox that receives your LinkedIn job alerts
 
-roles:
+roles:                             # <-- EDIT: the job titles you want (the ranking rules below use them)
   - AI/ML Engineer
   - Full Stack Engineer
   - Backend Developer
   - Data Engineer
   - GenAI Engineer
 
-work_types: [remote, on-site]
+work_types: [remote, on-site]      # <-- EDIT: remote, on-site, or both
 
 locations:
   priority: Egypt                  # Egypt jobs rank first (the city list lives in classify.py)
@@ -20,17 +21,17 @@ locations:
   relocation: [Canada, United Arab Emirates, Saudi Arabia, Europe]
   remote: worldwide                # no rank, search everywhere
 
-summary: >
+summary: >                         # <-- EDIT: 1 to 2 sentences about you as a candidate: your field and what you build
   Machine learning and data engineer who builds end-to-end AI systems:
   multi-agent pipelines, RAG, full-stack web and mobile apps.
 
-skills:
+skills:                            # <-- EDIT: your own skills, grouped any way you like
   languages: [Python, TypeScript]
   ai_ml: [RAG, LLM fine-tuning, multi-agent systems]
   backend: [FastAPI]
   frontend: [React]
 
-experience_level: entry-to-junior
+experience_level: entry-to-junior  # <-- EDIT: entry-to-junior, mid, or senior
 
 scoring:
   top_n: 10
@@ -76,13 +77,16 @@ feeds:
     Himalayas: 6
     Working Nomads: 6      # no official terms published, so we stay gentle
 
-# Cover note button (free local model). The model may only use these facts, so it cannot invent experience.
+# Cover note button (free local model). The model may only use the facts below, so it cannot invent experience.
 cover_note:
-  model: qwen2.5:3b
-  always_mention:        # every cover note must name this project (added automatically if the model forgets)
-    name: Example Project
+  model: qwen2.5:3b                # any model you have installed in Ollama
+  always_mention:                  # <-- EDIT: one project you want EVERY cover note to name
+    name: Example Project          #     its short name
     sentence: "In a personal project, I built Example Project, a short description of what it does and the tools it uses."
-  facts:
+    #     ^ one true sentence about it; it is added automatically if the model forgets to mention it
+  facts:                           # <-- EDIT: write 4 to 8 TRUE facts about yourself, one per line
+    # Tips: start each fact with WORK or PERSONAL PROJECT so the model never mixes them up.
+    #       Be specific: what you built, with which tools, and what it did.
     - "WORK (Company A, current internship): Software Engineer Intern since 2026: describe one real thing you built."
     - "WORK: Intern at Company B in 2025. (No project below belongs to this company.)"
     - "PERSONAL PROJECT (not for an employer): built Example Project, a short description."
