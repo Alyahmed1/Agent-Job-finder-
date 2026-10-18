@@ -11,8 +11,7 @@ Rules:
 - Next 2 to 3 sentences: pick the facts below that fit this job best and describe them as things YOU did.
 - Last sentence: say you would be glad to talk.
 - Use ONLY the facts below. Never invent experience, numbers, tools or companies.
-- You MUST name {must} in one sentence, as a personal project, and say what it is.
-- A project may belong only to the place the fact says. PERSONAL PROJECTs are not work for any company; say "in a personal project".
+{must_rule}- A project may belong only to the place the fact says. PERSONAL PROJECTs are not work for any company; say "in a personal project".
 - Do not say "extensive". You are early in your career.
 - Plain and specific. No flattery, no buzzwords. Never write "you" about {name}.
 
@@ -25,13 +24,19 @@ The job: {title} at {company} ({location})
 Write the cover note now:"""
 
 
+def required_project(cfg):
+    """The project every note must name, or "" when the profile leaves it empty."""
+    return ((cfg.get("always_mention") or {}).get("name") or "").strip()
+
+
 def build_prompt(profile, job):
     cfg = profile["cover_note"]
+    must = required_project(cfg)
     return PROMPT.format(
         name=profile["name"],
-        must=cfg["always_mention"]["name"],
-        summary=" ".join(profile["summary"].split()),
-        facts="\n".join(f"- {f}" for f in cfg["facts"]),
+        must_rule=f"- You MUST name {must} in one sentence, as a personal project, and say what it is.\n" if must else "",
+        summary=" ".join((profile.get("summary") or "").split()),
+        facts="\n".join(f"- {f}" for f in cfg.get("facts") or []),
         title=job["title"],
         company=job["company"] or "your company",
         location=job["location"] or "not stated",
@@ -40,18 +45,20 @@ def build_prompt(profile, job):
 
 def ensure_mentioned(text, cfg):
     """A small model sometimes forgets a rule, so the required project is guaranteed here."""
-    must = cfg["always_mention"]
-    if must["name"].lower() in text.lower():
+    name, sentence = required_project(cfg), ((cfg.get("always_mention") or {}).get("sentence") or "").strip()
+    if not name or not sentence or name.lower() in text.lower():
         return text
     cut = text.rfind("Best regards")
     if cut == -1:
-        return text.rstrip() + "\n\n" + must["sentence"]
-    return text[:cut].rstrip() + " " + must["sentence"] + "\n\n" + text[cut:]
+        return text.rstrip() + "\n\n" + sentence
+    return text[:cut].rstrip() + " " + sentence + "\n\n" + text[cut:]
 
 
 def generate(profile, job, timeout=180, attempts=2):
     """Returns (text, error). Exactly one of them is empty."""
     cfg = profile["cover_note"]
+    if not cfg.get("facts"):
+        return "", "Add a few true facts about yourself in profile.yaml (cover_note: facts), then try again."
     text = ""
     for _ in range(attempts):  # one retry if the model leaves the required project out
         try:
@@ -65,7 +72,7 @@ def generate(profile, job, timeout=180, attempts=2):
             text = resp.json().get("response", "").strip()
         except requests.RequestException:
             return "", "The local model isn't running. Start Ollama, then try again."
-        if text and cfg["always_mention"]["name"].lower() in text.lower():
+        if text and required_project(cfg).lower() in text.lower():
             break
     if not text:
         return "", "The model returned nothing. Try again."

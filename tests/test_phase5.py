@@ -10,7 +10,18 @@ import pipeline
 from score import load_profile, score_job
 
 APP = str(Path(__file__).resolve().parent.parent / "app.py")
-PROFILE = load_profile()
+EXAMPLE = load_profile(Path(__file__).resolve().parent.parent / "profile.example.yaml")   # the shipped example: personal fields blank on purpose
+# A filled-in profile for these tests, so they never depend on anyone's real details.
+PROFILE = {
+    **EXAMPLE,
+    "name": "Test User",
+    "summary": "A test summary.",
+    "cover_note": {
+        **EXAMPLE["cover_note"],
+        "always_mention": {"name": "Demo Project", "sentence": "In a personal project, I built Demo Project."},
+        "facts": ["WORK (Test Co): built a thing.", "PERSONAL PROJECT (not for an employer): built Demo Project."],
+    },
+}
 MUST = PROFILE["cover_note"]["always_mention"]["name"]   # the project every cover note must name
 
 
@@ -184,3 +195,15 @@ def test_opening_a_stale_dashboard_refreshes_once_and_a_fresh_one_does_not(tmp_p
     assert calls == [1]                     # old list: updated once
     at.run()
     assert calls == [1]                     # a second run in the same visit does not loop
+
+
+def test_the_shipped_example_is_blank_but_still_works():
+    cfg = EXAMPLE["cover_note"]
+    assert cfg["facts"] == [] and cfg["always_mention"] == {"name": "", "sentence": ""}
+    assert EXAMPLE["name"] == "Your Name" and EXAMPLE["gmail"] == "you@gmail.com"
+    # no required project: the prompt has no "MUST name" rule, and nothing is inserted into a note
+    assert "MUST name" not in cover.build_prompt({**EXAMPLE, "summary": ""}, JOB)
+    assert cover.ensure_mentioned("Hi,\n\nBest regards,\nX", cfg) == "Hi,\n\nBest regards,\nX"
+    # and without facts the cover-note button explains what to do instead of inventing a note
+    text, error = cover.generate(EXAMPLE, JOB)
+    assert text == "" and "profile.yaml" in error and "facts" in error

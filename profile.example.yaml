@@ -6,14 +6,9 @@
 name: Your Name                    # <-- EDIT: your full name (used to sign your cover notes)
 gmail: you@gmail.com               # <-- EDIT: the inbox that receives your LinkedIn job alerts
 
-roles:                             # <-- EDIT: the job titles you want (the ranking rules below use them)
-  - AI/ML Engineer
-  - Full Stack Engineer
-  - Backend Developer
-  - Data Engineer
-  - GenAI Engineer
+roles: []                          # <-- EDIT: the job titles you want. Replace [] with one per line, each starting with "- " (for example "- Backend Developer")
 
-work_types: [remote, on-site]      # <-- EDIT: remote, on-site, or both
+work_types: []                     # <-- EDIT: remote, on-site, or both, written like [remote, on-site]
 
 locations:
   priority: Egypt                  # Egypt jobs rank first (the city list lives in classify.py)
@@ -21,17 +16,11 @@ locations:
   relocation: [Canada, United Arab Emirates, Saudi Arabia, Europe]
   remote: worldwide                # no rank, search everywhere
 
-summary: >                         # <-- EDIT: 1 to 2 sentences about you as a candidate: your field and what you build
-  Machine learning and data engineer who builds end-to-end AI systems:
-  multi-agent pipelines, RAG, full-stack web and mobile apps.
+summary: ""                        # <-- EDIT: 1 to 2 sentences about you as a candidate: your field and what you build, inside the quotes
 
-skills:                            # <-- EDIT: your own skills, grouped any way you like
-  languages: [Python, TypeScript]
-  ai_ml: [RAG, LLM fine-tuning, multi-agent systems]
-  backend: [FastAPI]
-  frontend: [React]
+skills: {}                         # <-- EDIT: your own skills, grouped any way you like. Replace {} with lines such as "  languages: [Python]"
 
-experience_level: entry-to-junior  # <-- EDIT: entry-to-junior, mid, or senior
+experience_level: ""               # <-- EDIT: entry-to-junior, mid, or senior, inside the quotes
 
 scoring:
   top_n: 10
@@ -80,17 +69,14 @@ feeds:
 # Cover note button (free local model). The model may only use the facts below, so it cannot invent experience.
 cover_note:
   model: qwen2.5:3b                # any model you have installed in Ollama
-  always_mention:                  # <-- EDIT: one project you want EVERY cover note to name
-    name: Example Project          #     its short name
-    sentence: "In a personal project, I built Example Project, a short description of what it does and the tools it uses."
-    #     ^ one true sentence about it; it is added automatically if the model forgets to mention it
-  facts:                           # <-- EDIT: write 4 to 8 TRUE facts about yourself, one per line
+  always_mention:                  # <-- EDIT: one project you want EVERY cover note to name (leave both empty to skip this)
+    name: ""                       #     its short name, inside the quotes
+    sentence: ""                   #     one true sentence about it; it is added automatically if the model forgets to mention it
+  facts: []                        # <-- EDIT: replace [] with 4 to 8 TRUE facts about yourself, one per line, each starting with "- "
     # Tips: start each fact with WORK or PERSONAL PROJECT so the model never mixes them up.
-    #       Be specific: what you built, with which tools, and what it did.
-    - "WORK (Company A, current internship): Software Engineer Intern since 2026: describe one real thing you built."
-    - "WORK: Intern at Company B in 2025. (No project below belongs to this company.)"
-    - "PERSONAL PROJECT (not for an employer): built Example Project, a short description."
-    - "Skills: Python, FastAPI, React."
+    #       Be specific: what you built, with which tools, and what it did. For example:
+    #   - "WORK (Company A, current internship): what you built, with which tools."
+    #   - "PERSONAL PROJECT (not for an employer): built <project>, a short description."
 
 # Safety net: when you open the dashboard and the list is older than this, it updates itself once.
 auto_refresh_hours: 12

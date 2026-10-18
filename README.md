@@ -23,7 +23,7 @@ Each job shows a score and why (for example `Tier 1: AI / ML / GenAI +70`, `Egyp
 ```powershell
 python -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
-copy profile.example.yaml profile.yaml     # then edit profile.yaml (it stays private)
+copy profile.example.yaml profile.yaml     # then put your name and gmail in profile.yaml (it stays private)
 ```
 
 1. **LinkedIn alerts.** Create daily job alerts on LinkedIn for your roles and places, sent to your Gmail.
