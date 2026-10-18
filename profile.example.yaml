@@ -1,0 +1,92 @@
+# Job Finder Agent: your search profile.
+# Copy this file to profile.yaml (which is git-ignored, so it stays private) and edit it.
+# If profile.yaml is missing, the project falls back to this example.
+
+name: Your Name
+gmail: you@gmail.com   # inbox that receives LinkedIn job alerts
+
+roles:
+  - AI/ML Engineer
+  - Full Stack Engineer
+  - Backend Developer
+  - Data Engineer
+  - GenAI Engineer
+
+work_types: [remote, on-site]
+
+locations:
+  priority: Egypt                  # Egypt jobs rank first (the city list lives in classify.py)
+  on_site: [Egypt]
+  relocation: [Canada, United Arab Emirates, Saudi Arabia, Europe]
+  remote: worldwide                # no rank, search everywhere
+
+summary: >
+  Machine learning and data engineer who builds end-to-end AI systems:
+  multi-agent pipelines, RAG, full-stack web and mobile apps.
+
+skills:
+  languages: [Python, TypeScript]
+  ai_ml: [RAG, LLM fine-tuning, multi-agent systems]
+  backend: [FastAPI]
+  frontend: [React]
+
+experience_level: entry-to-junior
+
+scoring:
+  top_n: 10
+
+# Ranking by job title, first match wins. Edit keywords or points freely.
+priority_tiers:
+  - name: "Tier 1: AI / ML / GenAI"
+    points: 70
+    needs_role: true     # "AI" alone is not enough: title must also be an engineering/science role
+    demote:              # keep in Tier 1, but near the bottom of it (example: you are not into Linux)
+      keywords: ['linux']
+      cap: 64
+      label: "Linux (not preferred)"
+    keywords: ['machine learning', '\bml\b', '\bai\b', 'gen ?ai', 'generative', '\bllm', '\bnlp\b', 'deep learning', 'computer vision', 'artificial intelligence', '\bagent(ic|s)?\b', 'mlops', 'llmops', 'prompt engineer']
+  - name: "Tier 2: Backend / Full Stack / Data / Mobile / Web / Deploy"
+    points: 62           # a small gap to Tier 1 so the two ranks mix near the top
+    needs_role: true
+    keywords: ['back[- ]?end', 'full[- ]?stack', 'data engineer', 'mobile', 'flutter', '(android|ios) ', 'web ?(developer|engineer)', 'website', 'devops', 'cloud (engineer|developer)', 'deploy']
+  - name: "Tier 3: Software Engineer"
+    points: 40
+    keywords: ['software (engineer|developer)']
+no_match_points: 10
+role_words: 'engineer|developer|develop|scientist|researcher|programmer|architect|specialist|analyst|intern|trainee'
+off_target_words: 'designer|design\b|sales|marketing|recruit|support|technician|account manager|infrastructure|factory|network|hardware|data cent|content|writer|instructor|trainer|teacher'
+adjustments:
+  egypt: 10          # Egypt priority
+  junior: 10         # junior / graduate / early career
+  senior: -10        # senior / lead / principal / staff (softened, still worth a look)
+  management: -25    # manager / director / head (not a hands-on role)
+  stack_mismatch: -15  # .NET, Odoo, ServiceNow, SAP, PHP, Laravel, Salesforce
+  off_target: -30    # design, sales, support, infrastructure/deployment...
+
+# Remote-job websites (Remotive, Remote OK, We Work Remotely, Jobicy, Himalayas, Working Nomads)
+feeds:
+  min_score: 40            # only keep remote jobs that match your roles (LinkedIn alert jobs are always kept)
+  regions_ok: [worldwide, anywhere, global, emea, africa, middle east, mena, egypt]   # no "USA only" jobs
+  search_terms: [machine learning, generative AI, AI engineer, LLM, backend, data engineer, full stack, python]  # Jobicy + Himalayas
+  cooldown_hours:          # Remotive asks for at most ~4 requests a day
+    Remotive: 6
+    Remote OK: 3
+    We Work Remotely: 3
+    Jobicy: 6
+    Himalayas: 6
+    Working Nomads: 6      # no official terms published, so we stay gentle
+
+# Cover note button (free local model). The model may only use these facts, so it cannot invent experience.
+cover_note:
+  model: qwen2.5:3b
+  always_mention:        # every cover note must name this project (added automatically if the model forgets)
+    name: Example Project
+    sentence: "In a personal project, I built Example Project, a short description of what it does and the tools it uses."
+  facts:
+    - "WORK (Company A, current internship): Software Engineer Intern since 2026: describe one real thing you built."
+    - "WORK: Intern at Company B in 2025. (No project below belongs to this company.)"
+    - "PERSONAL PROJECT (not for an employer): built Example Project, a short description."
+    - "Skills: Python, FastAPI, React."
+
+# Safety net: when you open the dashboard and the list is older than this, it updates itself once.
+auto_refresh_hours: 12

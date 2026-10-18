@@ -1,0 +1,15 @@
+# Private: never upload these
+credentials.json
+token.json
+jobs.db
+settings.json
+profile.yaml
+samples/
+logs/
+
+# Local tooling
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.playwright-mcp/
