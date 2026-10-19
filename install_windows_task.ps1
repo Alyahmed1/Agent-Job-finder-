@@ -8,7 +8,7 @@ $taskName = "WillyJobFinder-Daily"
 
 $action   = New-ScheduledTaskAction -Execute "$root\.venv\Scripts\pythonw.exe" -Argument "scheduled_run.py" -WorkingDirectory $root
 $trigger  = New-ScheduledTaskTrigger -Daily -At "07:00"
-$settings = New-ScheduledTaskSettingsSet -WakeToRun -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+$settings = New-ScheduledTaskSettingsSet -WakeToRun -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RunOnlyIfNetworkAvailable `
             -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings `
     -Description "Job Finder: reads LinkedIn alerts and remote job sites at 7:00 AM" -Force | Out-Null
