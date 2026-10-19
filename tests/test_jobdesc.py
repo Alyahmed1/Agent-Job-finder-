@@ -41,3 +41,12 @@ def test_description_is_stored_once(tmp_path):
                     "score": 1, "reason": "r", "missing": ""})
     save_description(conn, "1", "Full text")
     assert conn.execute("SELECT description FROM jobs WHERE id='1'").fetchone()[0] == "Full text"
+
+
+def test_linkedin_pages_are_never_requested(monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError("must not call LinkedIn")
+
+    monkeypatch.setattr(jobdesc.requests, "get", boom)
+    text, err = jobdesc.fetch_description("https://www.linkedin.com/jobs/view/123/")
+    assert text == "" and "LinkedIn" in err

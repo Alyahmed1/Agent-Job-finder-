@@ -37,7 +37,9 @@ def parse_description(html):
 
 
 def fetch_description(url, timeout=20):
-    """Returns (text, error). Exactly one of them is empty."""
+    """Returns (text, error). Exactly one of them is empty. LinkedIn pages are never opened, so your account can't be blocked."""
+    if "linkedin.com" in url:
+        return "", "LinkedIn jobs aren't opened by the tool. Paste the description yourself, or only the title will be used."
     try:
         resp = requests.get(url, headers=HEADERS, timeout=timeout)
         resp.raise_for_status()
