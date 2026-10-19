@@ -41,3 +41,5 @@ def test_tailor_panel_opens_and_shows_a_comparison(tmp_path, monkeypatch):
     assert not at.exception, [e.value for e in at.exception]
     text = " ".join(m.value for m in at.markdown)
     assert "Kubernetes" in text and "FastAPI, Python" in text
+    next(b for b in at.button if b.label == "Close").click().run()
+    assert not at.exception and "Kubernetes" not in " ".join(m.value for m in at.markdown)

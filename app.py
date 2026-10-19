@@ -200,6 +200,7 @@ def cv_tailor(row, page):
             conn.close()
             run_tailor(row, paste.strip())
             st.rerun()
+    st.button("Close", key=f"{page}-{row['id']}-closetailor", on_click=open_tailor, args=(row["id"],))
     st.caption("Advice only: your CV file is never changed. Nothing is sent anywhere.")
 
 
