@@ -151,3 +151,13 @@ def test_working_nomads_parser_and_region_filter(tmp_path, monkeypatch):
     profile, conn = load_profile(), db.connect(tmp_path / "t.db")
     _fake_sources(monkeypatch, {"Working Nomads": jobs})
     assert pipeline.refresh_feeds(conn, profile, force=True) == {"Working Nomads": 1}  # only the 'Global' job
+
+
+def test_himalayas_and_wwr_keep_description_as_plain_text():
+    from collect.feeds import parse_himalayas, parse_wwr
+
+    him = parse_himalayas({"jobs": [{"title": "ML Engineer", "companyName": "Acme", "guid": "https://himalayas.app/companies/acme/jobs/ml",
+                                     "description": "<p>Use <b>PyTorch</b> daily.</p>"}]})
+    assert him[0]["description"] == "Use PyTorch daily."
+    xml = "<rss><channel><item><title>Acme: ML Eng</title><link>https://weworkremotely.com/remote-jobs/x</link><description>&lt;p&gt;Python&lt;/p&gt;</description></item></channel></rss>"
+    assert parse_wwr(xml)[0]["description"] == "Python"

@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 from urllib.parse import quote
 
 import requests
+from bs4 import BeautifulSoup
 
 HEADERS = {"User-Agent": "WillyJobFinder/1.0 (personal job search, not redistributed)"}
 TIMEOUT = 30
@@ -29,8 +30,13 @@ WWR_FEEDS = [
 SOURCE_NAMES = ("Remotive", "Remote OK", "We Work Remotely", "Jobicy", "Himalayas", "Working Nomads")
 
 
-def _job(job_id, url, title, company, location, source):
-    return {
+def _text(html):
+    """A feed's HTML description as plain text, cut to a sensible length."""
+    return re.sub(r"\s+", " ", BeautifulSoup(html or "", "html.parser").get_text(" ")).strip()[:6000]
+
+
+def _job(job_id, url, title, company, location, source, description=""):
+    job = {
         "id": job_id,
         "url": url,
         "title": (title or "").strip(),
@@ -38,6 +44,9 @@ def _job(job_id, url, title, company, location, source):
         "location": location,
         "source": source,
     }
+    if description:  # only some feeds send the full text; the rest is fetched on demand (jobdesc.py)
+        job["description"] = _text(description)
+    return job
 
 
 def parse_remotive(data):
@@ -72,7 +81,8 @@ def parse_wwr(xml_text):
         if not slug:
             continue
         where = (item.findtext("region") or "").strip() or "Worldwide"
-        jobs.append(_job(f"wwr-{slug}", link, title, company, f"{where} (Remote)", "We Work Remotely"))
+        jobs.append(_job(f"wwr-{slug}", link, title, company, f"{where} (Remote)", "We Work Remotely",
+                         item.findtext("description")))
     return jobs
 
 
@@ -94,7 +104,8 @@ def parse_himalayas(data):
         if not slug:
             continue
         where = ", ".join(j.get("locationRestrictions") or []) or "Worldwide"
-        jobs.append(_job(f"himalayas-{slug}", link, j.get("title"), j.get("companyName"), f"{where} (Remote)", "Himalayas"))
+        jobs.append(_job(f"himalayas-{slug}", link, j.get("title"), j.get("companyName"), f"{where} (Remote)", "Himalayas",
+                         j.get("description")))
     return jobs
 
 

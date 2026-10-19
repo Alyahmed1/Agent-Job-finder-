@@ -22,6 +22,8 @@ def connect(path=None):
     )
     if "note" not in {r["name"] for r in conn.execute("PRAGMA table_info(jobs)")}:
         conn.execute("ALTER TABLE jobs ADD COLUMN note TEXT")  # a cover note you chose to save
+    if "description" not in {r["name"] for r in conn.execute("PRAGMA table_info(jobs)")}:
+        conn.execute("ALTER TABLE jobs ADD COLUMN description TEXT")  # the job's full text, fetched once on demand
     conn.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
     return conn
 
@@ -53,9 +55,9 @@ def set_meta(conn, key, value):
 def save_job(conn, job):
     conn.execute(
         """INSERT OR IGNORE INTO jobs
-           (id, title, company, location, url, source, score, reason, missing, first_seen)
-           VALUES (:id, :title, :company, :location, :url, :source, :score, :reason, :missing, :first_seen)""",
-        {**job, "first_seen": datetime.now(timezone.utc).isoformat()},
+           (id, title, company, location, url, source, score, reason, missing, description, first_seen)
+           VALUES (:id, :title, :company, :location, :url, :source, :score, :reason, :missing, :description, :first_seen)""",
+        {"description": None, **job, "first_seen": datetime.now(timezone.utc).isoformat()},
     )
     conn.commit()
 
@@ -68,6 +70,11 @@ def set_status(conn, job_id, status):
 
 def save_note(conn, job_id, text):
     conn.execute("UPDATE jobs SET note = ? WHERE id = ?", (text, job_id))
+    conn.commit()
+
+
+def save_description(conn, job_id, text):
+    conn.execute("UPDATE jobs SET description = ? WHERE id = ?", (text, job_id))
     conn.commit()
 
 
