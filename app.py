@@ -5,8 +5,10 @@ import streamlit as st
 
 import cover
 import db
+import jobdesc
 import pipeline
 import settings
+import tailor
 import ui
 from classify import tags
 from score import load_profile
@@ -137,6 +139,70 @@ def cover_note(row, page):
                "Nothing is sent anywhere.")
 
 
+def open_tailor(job_id):
+    st.session_state.tailor_open = None if st.session_state.get("tailor_open") == job_id else job_id
+
+
+def run_tailor(row, text):
+    try:
+        cv = tailor.load_cv()
+    except FileNotFoundError as err:
+        st.error(str(err))
+        return
+    with st.spinner("Comparing the job to your CV..."):
+        st.session_state[f"tailor_res_{row['id']}"] = tailor.tailor(load_profile(), cv, text, row["title"])
+
+
+def show_tailor(result):
+    st.markdown("**You have:** " + (", ".join(result["have"]) or "nothing from this job's tool list"))
+    st.markdown("**You're missing:** " + (", ".join(result["missing"]) or "nothing, you cover every tool it names"))
+    if result["best"]:
+        st.markdown("**Lead with:**")
+        for b in result["best"]:
+            st.markdown(f"- {b['name']} ({', '.join(b['matched'])})")
+    if result["line"]:
+        st.markdown("**A profile line for this job** (read it, then copy it into your CV):")
+        st.code(result["line"], language=None, wrap_lines=True)
+    if result["line_note"]:
+        st.caption(result["line_note"])
+
+
+def cv_tailor(row, page):
+    """Advice only. Your CV file is never changed, and the profile line never names a tool your CV lacks."""
+    st.button("Tailor my CV", key=f"{page}-{row['id']}-tailor", icon=":material/description:", type="tertiary",
+              on_click=open_tailor, args=(row["id"],))
+    if st.session_state.get("tailor_open") != row["id"]:
+        return
+    text, fetched = row["description"] or "", f"tailor_fetched_{row['id']}"
+    if not text and not st.session_state.get(fetched):  # one gentle try on the job's own page; LinkedIn is never opened
+        st.session_state[fetched] = True
+        with st.spinner("Reading the job description..."):
+            text, error = jobdesc.fetch_description(row["url"])
+        if text:
+            conn = db.connect()
+            db.save_description(conn, row["id"], text)
+            conn.close()
+        else:
+            st.session_state[f"tailor_why_{row['id']}"] = error
+    result = st.session_state.get(f"tailor_res_{row['id']}")
+    if text and result is None:
+        run_tailor(row, text)
+        result = st.session_state.get(f"tailor_res_{row['id']}")
+    if result is not None:
+        show_tailor(result)
+    if result is None or result["limited"]:
+        why = st.session_state.get(f"tailor_why_{row['id']}")
+        st.info(why or "Only a short snippet of this job was available, so the comparison is light.")
+        paste = st.text_area("Paste the full job description for a better result", key=f"tailor_paste_{row['id']}", height=140)
+        if st.button("Compare", key=f"{page}-{row['id']}-compare", icon=":material/compare_arrows:", disabled=not paste.strip()):
+            conn = db.connect()
+            db.save_description(conn, row["id"], paste.strip())
+            conn.close()
+            run_tailor(row, paste.strip())
+            st.rerun()
+    st.caption("Advice only: your CV file is never changed. Nothing is sent anywhere.")
+
+
 def job_card(row, page):
     with st.container(key=f"card-{page}-{row['id']}"):
         st.html(ui.card_html(row, st.session_state.theme))
@@ -153,6 +219,7 @@ def job_card(row, page):
                                on_click=mark, args=(row["id"], "saved"), use_container_width=True)
             cols[3].button("Not interested" if page != "Saved" else "Remove", key=f"{page}-{row['id']}-rejected",
                            icon=":material/close:", on_click=mark, args=(row["id"], "rejected"), use_container_width=True)
+        cv_tailor(row, page)
         cover_note(row, page)
 
 
