@@ -12,7 +12,7 @@ A job-finding agent that stays on your side: it finds and ranks jobs for you, an
 - **Honest CV advice.** *Tailor my CV* uses a local model to match a job to your real skills and projects. Code checks the one-line summary so it can never name a tool that is not in your CV. It gives advice only and never edits your CV.
 - **Free and local.** No paid APIs. Scoring is rules; the optional writer runs on a local [Ollama](https://ollama.com) model.
 - **You stay in control.** Apply opens the job page. Nothing is ever sent for you.
-- **Follow-up reminder.** Mark applied saves the date. The Applied tab groups jobs into *Waiting for a reply*, *Interview* and *Rejected*. A job still waiting after a week shows *Follow up?*. The number of days is `follow_up_days` in `profile.yaml`.
+- **Follow-up reminder.** Mark applied saves the date. The Applied page has four tabs: *Applied*, *Follow up* (waiting a week or more), *Interview* and *Rejected*. Press Interview or Rejected when a company answers. The number of days is `follow_up_days` in `profile.yaml`.
 - **Tested.** 90 automated tests.
 
 Jobs come from your LinkedIn alert emails and free public feeds: Remotive, Remote OK, We Work Remotely, Jobicy, Himalayas, Working Nomads. Every card links back to its source.

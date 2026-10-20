@@ -264,13 +264,18 @@ def applied_status(row, follow_days=7, now=None):
     return (text + " · Follow up?", "due") if days >= follow_days else (text, "quiet")
 
 
-def applied_groups(rows):
-    """[(title, rows)] for the Applied page: waiting first (oldest first), then Interview, then Rejected. Empty groups are left out."""
-    waiting = sorted((r for r in rows if not r["reply"]), key=lambda r: (r["applied_at"] is None, r["applied_at"] or ""))
-    groups = [("Waiting for a reply", waiting),
-              ("Interview", [r for r in rows if r["reply"] == "interview"]),
-              ("Rejected", [r for r in rows if r["reply"] == "rejected"])]
-    return [(title, part) for title, part in groups if part]
+APPLIED_TABS = ("Applied", "Follow up", "Interview", "Rejected")
+
+
+def applied_tabs(rows, follow_days=7, now=None):
+    """{tab: rows} for the Applied page. Waiting jobs split by age: Applied (under follow_days, or no saved date)
+    and Follow up (follow_days or more). Interview and Rejected come from the buttons. Oldest first."""
+    def waiting(due):
+        out = [r for r in rows if not r["reply"] and (applied_status(r, follow_days, now)[1] == "due") == due]
+        return sorted(out, key=lambda r: (r["applied_at"] is None, r["applied_at"] or ""))
+    return {"Applied": waiting(False), "Follow up": waiting(True),
+            "Interview": [r for r in rows if r["reply"] == "interview"],
+            "Rejected": [r for r in rows if r["reply"] == "rejected"]}
 
 
 def applied_line_html(text, tone, theme=DEFAULT_THEME):

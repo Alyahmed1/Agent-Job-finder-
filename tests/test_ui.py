@@ -98,14 +98,20 @@ def test_applied_status_asks_for_a_follow_up_only_after_a_week_without_a_reply()
     assert applied_status(row(), 7, now) == ("Applied (date not saved)", "quiet")                      # marked before dates existed
 
 
-def test_applied_page_groups_waiting_first_oldest_first_then_interview_then_rejected():
-    from ui import applied_groups
-    rows = [{"id": "r", "applied_at": "2026-10-01", "reply": "rejected"},
-            {"id": "w2", "applied_at": "2026-10-10", "reply": None},
-            {"id": "i", "applied_at": "2026-10-02", "reply": "interview"},
-            {"id": "w1", "applied_at": "2026-10-05", "reply": None},
-            {"id": "w0", "applied_at": None, "reply": None}]
-    groups = applied_groups(rows)
-    assert [(t, [r["id"] for r in part]) for t, part in groups] == [
-        ("Waiting for a reply", ["w1", "w2", "w0"]), ("Interview", ["i"]), ("Rejected", ["r"])]
-    assert applied_groups([{"id": "x", "applied_at": None, "reply": "interview"}]) == [("Interview", [{"id": "x", "applied_at": None, "reply": "interview"}])]  # empty groups are left out
+def test_applied_page_splits_into_four_tabs():
+    from datetime import datetime, timedelta, timezone
+    from ui import applied_tabs
+    now = datetime(2026, 10, 20, tzinfo=timezone.utc)
+    ago = lambda d: (now - timedelta(days=d)).isoformat()
+    rows = [{"id": "rej", "applied_at": ago(20), "reply": "rejected"},
+            {"id": "old", "applied_at": ago(10), "reply": None},      # waiting 10 days: follow up
+            {"id": "int", "applied_at": ago(12), "reply": "interview"},
+            {"id": "new", "applied_at": ago(2), "reply": None},       # waiting 2 days: still Applied
+            {"id": "older", "applied_at": ago(30), "reply": None},
+            {"id": "nodate", "applied_at": None, "reply": None}]      # marked before dates existed: never due
+    tabs = applied_tabs(rows, 7, now)
+    ids = {name: [r["id"] for r in part] for name, part in tabs.items()}
+    assert ids == {"Applied": ["new", "nodate"], "Follow up": ["older", "old"],      # oldest first; no date last
+                   "Interview": ["int"], "Rejected": ["rej"]}
+    assert list(tabs) == ["Applied", "Follow up", "Interview", "Rejected"]
+    assert applied_tabs([], 7, now) == {"Applied": [], "Follow up": [], "Interview": [], "Rejected": []}

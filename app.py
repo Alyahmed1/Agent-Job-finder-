@@ -45,6 +45,12 @@ EMPTY = {
     "Applied": "No applications tracked yet. Press Mark applied after you apply.",
     "Not interested": "You haven't hidden any jobs. Jobs you mark Not interested show up here.",
 }
+APPLIED_EMPTY = {
+    "Applied": "Nothing waiting. Jobs you mark applied show here until a week passes.",
+    "Follow up": "No job needs a follow-up right now.",
+    "Interview": "No interviews yet. Press Interview on an applied job when a company invites you.",
+    "Rejected": "No rejections. Press Rejected on an applied job when a company turns you down.",
+}
 TOASTS = {"saved": "Saved", "applied": "Marked as applied", "rejected": "Hidden. It won't come back", "new": "Moved back to new jobs"}
 
 
@@ -220,7 +226,8 @@ def job_card(row, page):
             text, tone = ui.applied_status(row, load_profile().get("follow_up_days", 7))
             st.html(ui.applied_line_html(text, tone, st.session_state.theme))
         cols = st.columns(4)
-        cols[0].link_button("Apply", row["url"], icon=":material/open_in_new:", type="primary", use_container_width=True)
+        cols[0].link_button("View job" if page == "Applied" else "Apply", row["url"], icon=":material/open_in_new:",
+                            type="primary", use_container_width=True)
         if page in ("Applied", "Not interested"):
             cols[1].button("Undo" if page == "Applied" else "Restore", key=f"{page}-{row['id']}-undo",
                            icon=":material/undo:", on_click=mark, args=(row["id"], "new"), use_container_width=True)
@@ -317,17 +324,17 @@ if not rows:
 else:
     if page in (HOME, "Remote", "Relocation"):
         st.caption("Apply opens the job on the site it came from. Come back and press Mark applied so it's tracked.")
-    if page == "Applied":  # waiting for a reply first, then interviews, then rejections
-        shown = 0
-        for title, part in ui.applied_groups(rows):
-            if shown >= SHOW_LIMIT:
-                break
-            st.markdown(f"#### {title} · {len(part)}")
-            for r in part[:SHOW_LIMIT - shown]:
-                job_card(r, page)
-                shown += 1
+    if page == "Applied":  # four tabs; the chosen one is kept in session state so a button press does not jump back
+        tabs = ui.applied_tabs(rows, profile.get("follow_up_days", 7))
+        st.session_state.setdefault("applied_tab", "Applied")
+        choice = st.segmented_control("Applied jobs", list(tabs), key="applied_tab", label_visibility="collapsed",
+                                      format_func=lambda n: f"{n} · {len(tabs[n])}") or "Applied"
+        if not tabs[choice]:
+            st.info(APPLIED_EMPTY[choice])
+        for r in tabs[choice][:SHOW_LIMIT]:
+            job_card(r, page)
     else:
         for r in rows[:SHOW_LIMIT]:
             job_card(r, page)
-    if len(rows) > SHOW_LIMIT:
+    if page != "Applied" and len(rows) > SHOW_LIMIT:
         st.caption(f"Showing the top {SHOW_LIMIT} of {len(rows)}. Use search or minimum score to narrow down.")
