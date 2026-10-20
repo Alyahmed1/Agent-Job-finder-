@@ -46,3 +46,14 @@ def test_old_databases_get_the_follow_up_columns(tmp_path):
     old.close()
     row = db.connect(path).execute("SELECT applied_at, reply FROM jobs").fetchone()
     assert row["applied_at"] is None and row["reply"] is None
+
+
+def test_followed_up_is_saved_and_cleared_with_the_status(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    db.save_job(conn, {"id": "a", "title": "t", "company": "c", "location": "Cairo", "url": "u", "source": "s",
+                       "score": 50, "reason": "", "missing": ""})
+    db.set_status(conn, "a", "applied")
+    db.set_followed_up(conn, "a")
+    assert conn.execute("SELECT followed_up_at FROM jobs WHERE id = 'a'").fetchone()["followed_up_at"]
+    db.set_status(conn, "a", "new")
+    assert conn.execute("SELECT followed_up_at FROM jobs WHERE id = 'a'").fetchone()["followed_up_at"] is None

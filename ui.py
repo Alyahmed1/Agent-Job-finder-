@@ -250,18 +250,36 @@ def card_html(row, theme=DEFAULT_THEME):
     )
 
 
+def _days_ago(iso, now):
+    return ((now or datetime.now(timezone.utc)) - datetime.fromisoformat(iso)).days
+
+
+def _ago(days):
+    return "today" if days <= 0 else "yesterday" if days == 1 else f"{days} days ago"
+
+
 def applied_status(row, follow_days=7, now=None):
     """(text, tone) for the Applied tab. Tone is 'due' (follow up), 'good' (interview), 'bad' (rejected) or 'quiet'.
-    Jobs that already replied, or have no saved date, never ask for a follow-up."""
+    The wait is counted from the later of 'applied' and 'followed up'. Replied jobs, and jobs with no saved date, never ask for a follow-up."""
     if row["reply"] == "interview":
         return "Interview", "good"
     if row["reply"] == "rejected":
         return "Rejected", "bad"
-    if not row["applied_at"]:
+    applied, followed = row["applied_at"], row["followed_up_at"]
+    if not applied and not followed:
         return "Applied (date not saved)", "quiet"
-    days = ((now or datetime.now(timezone.utc)) - datetime.fromisoformat(row["applied_at"])).days
-    text = "Applied today" if days <= 0 else "Applied yesterday" if days == 1 else f"Applied {days} days ago"
-    return (text + " · Follow up?", "due") if days >= follow_days else (text, "quiet")
+    text = f"Applied {_ago(_days_ago(applied, now))}" if applied else "Applied (date not saved)"
+    if followed:
+        text += f" · Followed up {_ago(_days_ago(followed, now))}"
+    due = _days_ago(max(d for d in (applied, followed) if d), now) >= follow_days
+    return (text + " · Follow up?", "due") if due else (text, "quiet")
+
+
+def follow_up_text(row, name=""):
+    """A plain, editable follow-up message. No AI: just the job title, company and the date you applied."""
+    when = f" on {datetime.fromisoformat(row['applied_at']):%d %B}" if row["applied_at"] else " recently"
+    return (f"Hi,\n\nI applied for the {row['title']} role at {row['company']}{when} and I am still very interested. "
+            f"I would be glad to hear about the next steps.\n\nThank you,\n{name}".rstrip())
 
 
 APPLIED_TABS = ("Applied", "Follow up", "Interview", "Rejected")
@@ -272,7 +290,8 @@ def applied_tabs(rows, follow_days=7, now=None):
     and Follow up (follow_days or more). Interview and Rejected come from the buttons. Oldest first."""
     def waiting(due):
         out = [r for r in rows if not r["reply"] and (applied_status(r, follow_days, now)[1] == "due") == due]
-        return sorted(out, key=lambda r: (r["applied_at"] is None, r["applied_at"] or ""))
+        since = lambda r: max((d for d in (r["applied_at"], r["followed_up_at"]) if d), default=None)  # oldest wait first
+        return sorted(out, key=lambda r: (since(r) is None, since(r) or ""))
     return {"Applied": waiting(False), "Follow up": waiting(True),
             "Interview": [r for r in rows if r["reply"] == "interview"],
             "Rejected": [r for r in rows if r["reply"] == "rejected"]}

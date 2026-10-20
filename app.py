@@ -84,6 +84,35 @@ def mark(job_id, status):
         st.session_state.celebrate = True
 
 
+def open_followup(job_id):
+    st.session_state.followup_open = None if st.session_state.get("followup_open") == job_id else job_id
+
+
+def mark_followed_up(job_id):
+    conn = db.connect()
+    db.set_followed_up(conn, job_id)
+    conn.close()
+    st.session_state.followup_open = None
+    st.toast("Marked as followed up. It comes back in a week if there is no answer")
+
+
+def follow_up(row, page, name):
+    """Shown on jobs that are due. The message is a plain template you edit and send yourself; nothing is sent from here."""
+    st.button("Follow-up message", key=f"{page}-{row['id']}-followup", icon=":material/forward_to_inbox:", type="tertiary",
+              on_click=open_followup, args=(row["id"],))
+    if st.session_state.get("followup_open") != row["id"]:
+        return
+    key = f"followup_text_{row['id']}"
+    st.session_state.setdefault(key, ui.follow_up_text(row, name))
+    st.text_area("Your message. Edit it freely, then copy it.", key=key, height=190)
+    a, b = st.columns(2)
+    a.button("I followed up", key=f"{page}-{row['id']}-didfollow", icon=":material/check:", type="primary",
+             on_click=mark_followed_up, args=(row["id"],), use_container_width=True)
+    b.button("Close", key=f"{page}-{row['id']}-closefollow", on_click=open_followup, args=(row["id"],), use_container_width=True)
+    st.caption("Nothing is sent from here. Copy the text and send it yourself: reply to the application email, "
+               "or message the recruiter.")
+
+
 def set_reply(job_id, reply):
     conn = db.connect()
     db.set_reply(conn, job_id, reply)
@@ -222,6 +251,7 @@ def cv_tailor(row, page):
 def job_card(row, page):
     with st.container(key=f"card-{page}-{row['id']}"):
         st.html(ui.card_html(row, st.session_state.theme))
+        tone = None
         if page == "Applied":
             text, tone = ui.applied_status(row, load_profile().get("follow_up_days", 7))
             st.html(ui.applied_line_html(text, tone, st.session_state.theme))
@@ -252,6 +282,8 @@ def job_card(row, page):
             cv_tailor(row, page)
         if "note" in extras:
             cover_note(row, page)
+        if tone == "due":
+            follow_up(row, page, load_profile().get("name", ""))
 
 
 st.set_page_config(page_title="Job Hunter", page_icon=":material/work:", layout="wide",

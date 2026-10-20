@@ -88,7 +88,7 @@ def test_applied_status_asks_for_a_follow_up_only_after_a_week_without_a_reply()
     from ui import applied_status
     now = datetime(2026, 10, 20, tzinfo=timezone.utc)
     ago = lambda d: (now - timedelta(days=d)).isoformat()
-    row = lambda **k: {"applied_at": None, "reply": None, **k}
+    row = lambda **k: {"applied_at": None, "followed_up_at": None, "reply": None, **k}
     assert applied_status(row(applied_at=ago(0)), 7, now) == ("Applied today", "quiet")
     assert applied_status(row(applied_at=ago(1)), 7, now) == ("Applied yesterday", "quiet")
     assert applied_status(row(applied_at=ago(6)), 7, now) == ("Applied 6 days ago", "quiet")
@@ -103,15 +103,16 @@ def test_applied_page_splits_into_four_tabs():
     from ui import applied_tabs
     now = datetime(2026, 10, 20, tzinfo=timezone.utc)
     ago = lambda d: (now - timedelta(days=d)).isoformat()
-    rows = [{"id": "rej", "applied_at": ago(20), "reply": "rejected"},
-            {"id": "old", "applied_at": ago(10), "reply": None},      # waiting 10 days: follow up
-            {"id": "int", "applied_at": ago(12), "reply": "interview"},
-            {"id": "new", "applied_at": ago(2), "reply": None},       # waiting 2 days: still Applied
-            {"id": "older", "applied_at": ago(30), "reply": None},
-            {"id": "nodate", "applied_at": None, "reply": None}]      # marked before dates existed: never due
+    rows = [{"id": "rej", "applied_at": ago(20), "followed_up_at": None, "reply": "rejected"},
+            {"id": "old", "applied_at": ago(10), "followed_up_at": None, "reply": None},      # waiting 10 days: follow up
+            {"id": "int", "applied_at": ago(12), "followed_up_at": None, "reply": "interview"},
+            {"id": "new", "applied_at": ago(2), "followed_up_at": None, "reply": None},       # waiting 2 days: still Applied
+            {"id": "older", "applied_at": ago(30), "followed_up_at": None, "reply": None},
+            {"id": "again", "applied_at": ago(30), "followed_up_at": ago(1), "reply": None},  # followed up yesterday: waits again
+            {"id": "nodate", "applied_at": None, "followed_up_at": None, "reply": None}]      # marked before dates existed: never due
     tabs = applied_tabs(rows, 7, now)
     ids = {name: [r["id"] for r in part] for name, part in tabs.items()}
-    assert ids == {"Applied": ["new", "nodate"], "Follow up": ["older", "old"],      # oldest first; no date last
+    assert ids == {"Applied": ["new", "again", "nodate"], "Follow up": ["older", "old"],      # oldest first; no date last
                    "Interview": ["int"], "Rejected": ["rej"]}
     assert list(tabs) == ["Applied", "Follow up", "Interview", "Rejected"]
     assert applied_tabs([], 7, now) == {"Applied": [], "Follow up": [], "Interview": [], "Rejected": []}
@@ -123,3 +124,18 @@ def test_card_extras_depend_on_the_applied_tab():
     assert card_extras("Applied", None) == ("note",)                    # Applied and Follow up: just the note
     assert card_extras("Applied", "interview") == ("tailor", "note")    # interview: both, to prepare
     assert card_extras("Applied", "rejected") == ()                     # rejected: a closed case
+
+
+def test_followed_up_restarts_the_wait_and_the_message_fills_in_the_job():
+    from datetime import datetime, timedelta, timezone
+    from ui import applied_status, follow_up_text
+    now = datetime(2026, 10, 20, tzinfo=timezone.utc)
+    ago = lambda d: (now - timedelta(days=d)).isoformat()
+    base = {"reply": None, "title": "ML Engineer", "company": "Acme"}
+    row = {**base, "applied_at": ago(12), "followed_up_at": ago(2)}
+    assert applied_status(row, 7, now) == ("Applied 12 days ago · Followed up 2 days ago", "quiet")
+    row = {**base, "applied_at": ago(20), "followed_up_at": ago(8)}
+    assert applied_status(row, 7, now) == ("Applied 20 days ago · Followed up 8 days ago · Follow up?", "due")
+    msg = follow_up_text({**base, "applied_at": "2026-10-05T10:00:00+00:00"}, "Aly Ahmed")
+    assert "ML Engineer role at Acme on 05 October" in msg and msg.endswith("Aly Ahmed")
+    assert "recently" in follow_up_text({**base, "applied_at": None})

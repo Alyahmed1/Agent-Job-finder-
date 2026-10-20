@@ -27,6 +27,8 @@ def connect(path=None):
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(jobs)")}
     if "applied_at" not in cols:
         conn.execute("ALTER TABLE jobs ADD COLUMN applied_at TEXT")  # when you pressed Mark applied (for the follow-up reminder)
+    if "followed_up_at" not in cols:
+        conn.execute("ALTER TABLE jobs ADD COLUMN followed_up_at TEXT")  # when you pressed Followed up; restarts the waiting clock
     if "reply" not in cols:
         conn.execute("ALTER TABLE jobs ADD COLUMN reply TEXT")  # NULL = still waiting, else 'interview' or 'rejected'
     conn.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
@@ -70,7 +72,13 @@ def save_job(conn, job):
 def set_status(conn, job_id, status):
     """status: new | saved | applied | rejected. Marking applied saves today's date; any other status clears it."""
     when = datetime.now(timezone.utc).isoformat() if status == "applied" else None
-    conn.execute("UPDATE jobs SET status = ?, applied_at = ?, reply = NULL WHERE id = ?", (status, when, job_id))
+    conn.execute("UPDATE jobs SET status = ?, applied_at = ?, reply = NULL, followed_up_at = NULL WHERE id = ?",
+                 (status, when, job_id))
+    conn.commit()
+
+
+def set_followed_up(conn, job_id):
+    conn.execute("UPDATE jobs SET followed_up_at = ? WHERE id = ?", (datetime.now(timezone.utc).isoformat(), job_id))
     conn.commit()
 
 
