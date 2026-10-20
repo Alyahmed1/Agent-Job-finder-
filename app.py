@@ -138,6 +138,9 @@ def cover_note(row, page):
     b.button("Save note", key=f"{page}-{row['id']}-savenote", icon=":material/save:", type="primary",
              on_click=save_note, args=(row["id"], key), use_container_width=True)
     c.button("Close", key=f"{page}-{row['id']}-closenote", on_click=open_note, args=(row["id"],), use_container_width=True)
+    if st.session_state[key].strip():  # the code box has a built-in copy icon, so one click copies the note for the form
+        st.caption("Ready to paste into the application: hover over the box and press the copy icon at its top right.")
+        st.code(st.session_state[key], language=None, wrap_lines=True)
     st.caption("A draft from your local model, using only facts from your profile. Check every fact before you use it. "
                "Nothing is sent anywhere.")
 
