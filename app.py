@@ -247,8 +247,11 @@ def job_card(row, page):
                                on_click=mark, args=(row["id"], "saved"), use_container_width=True)
             cols[3].button("Not interested" if page != "Saved" else "Remove", key=f"{page}-{row['id']}-rejected",
                            icon=":material/close:", on_click=mark, args=(row["id"], "rejected"), use_container_width=True)
-        cv_tailor(row, page)
-        cover_note(row, page)
+        extras = ui.card_extras(page, row["reply"] if page == "Applied" else None)
+        if "tailor" in extras:
+            cv_tailor(row, page)
+        if "note" in extras:
+            cover_note(row, page)
 
 
 st.set_page_config(page_title="Job Hunter", page_icon=":material/work:", layout="wide",

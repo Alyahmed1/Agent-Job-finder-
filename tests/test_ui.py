@@ -115,3 +115,11 @@ def test_applied_page_splits_into_four_tabs():
                    "Interview": ["int"], "Rejected": ["rej"]}
     assert list(tabs) == ["Applied", "Follow up", "Interview", "Rejected"]
     assert applied_tabs([], 7, now) == {"Applied": [], "Follow up": [], "Interview": [], "Rejected": []}
+
+
+def test_card_extras_depend_on_the_applied_tab():
+    from ui import card_extras
+    assert card_extras("Egypt") == ("tailor", "note") and card_extras("Saved") == ("tailor", "note")
+    assert card_extras("Applied", None) == ("note",)                    # Applied and Follow up: just the note
+    assert card_extras("Applied", "interview") == ("tailor", "note")    # interview: both, to prepare
+    assert card_extras("Applied", "rejected") == ()                     # rejected: a closed case

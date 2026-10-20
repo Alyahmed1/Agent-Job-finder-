@@ -278,6 +278,14 @@ def applied_tabs(rows, follow_days=7, now=None):
             "Rejected": [r for r in rows if r["reply"] == "rejected"]}
 
 
+def card_extras(page, reply=None):
+    """Which extra buttons a job card shows: 'tailor' (Tailor my CV) and 'note' (Cover note).
+    On the Applied page: waiting jobs keep the note only (to see what you sent), interviews keep both (to prepare), rejections neither."""
+    if page == "Applied":
+        return {"interview": ("tailor", "note"), "rejected": ()}.get(reply, ("note",))
+    return ("tailor", "note")
+
+
 def applied_line_html(text, tone, theme=DEFAULT_THEME):
     """The 'Applied 8 days ago · Follow up?' line, colored from the theme (amber when due, green for an interview, red when rejected)."""
     t = THEMES.get(theme, THEMES[DEFAULT_THEME])
