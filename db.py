@@ -24,6 +24,11 @@ def connect(path=None):
         conn.execute("ALTER TABLE jobs ADD COLUMN note TEXT")  # a cover note you chose to save
     if "description" not in {r["name"] for r in conn.execute("PRAGMA table_info(jobs)")}:
         conn.execute("ALTER TABLE jobs ADD COLUMN description TEXT")  # the job's full text, fetched once on demand
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(jobs)")}
+    if "applied_at" not in cols:
+        conn.execute("ALTER TABLE jobs ADD COLUMN applied_at TEXT")  # when you pressed Mark applied (for the follow-up reminder)
+    if "replied" not in cols:
+        conn.execute("ALTER TABLE jobs ADD COLUMN replied INTEGER DEFAULT 0")  # 1 once you pressed Got a reply
     conn.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
     return conn
 
@@ -63,8 +68,14 @@ def save_job(conn, job):
 
 
 def set_status(conn, job_id, status):
-    """status: new | saved | applied | rejected"""
-    conn.execute("UPDATE jobs SET status = ? WHERE id = ?", (status, job_id))
+    """status: new | saved | applied | rejected. Marking applied saves today's date; any other status clears it."""
+    when = datetime.now(timezone.utc).isoformat() if status == "applied" else None
+    conn.execute("UPDATE jobs SET status = ?, applied_at = ?, replied = 0 WHERE id = ?", (status, when, job_id))
+    conn.commit()
+
+
+def set_replied(conn, job_id, replied):
+    conn.execute("UPDATE jobs SET replied = ? WHERE id = ?", (1 if replied else 0, job_id))
     conn.commit()
 
 

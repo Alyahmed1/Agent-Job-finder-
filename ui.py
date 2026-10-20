@@ -1,6 +1,7 @@
 """Look and feel for the jobs page: three themes (as color tokens), the CSS, and small HTML helpers."""
 import html
 import re
+from datetime import datetime, timezone
 
 # Each theme is only a set of color tokens; the CSS below uses them through variables.
 # "Dark" is the original look. Text/background pairs are checked for >= 4.5:1 contrast.
@@ -247,6 +248,25 @@ def card_html(row, theme=DEFAULT_THEME):
         f'<div class="jf-fit" style="color:{color}">{label}</div>'
         "</div>"
     )
+
+
+def applied_status(row, follow_days=7, now=None):
+    """('Applied 8 days ago · Follow up?', True) for the Applied tab. Replied jobs and jobs with no saved date never ask for a follow-up."""
+    if row["replied"]:
+        return "Replied", False
+    if not row["applied_at"]:
+        return "Applied (date not saved)", False
+    days = ((now or datetime.now(timezone.utc)) - datetime.fromisoformat(row["applied_at"])).days
+    text = "Applied today" if days <= 0 else "Applied yesterday" if days == 1 else f"Applied {days} days ago"
+    due = days >= follow_days
+    return (text + " · Follow up?" if due else text), due
+
+
+def applied_line_html(text, due, replied, theme=DEFAULT_THEME):
+    """The 'Applied 8 days ago · Follow up?' line, colored from the theme (amber when due, green when replied)."""
+    t = THEMES.get(theme, THEMES[DEFAULT_THEME])
+    color = t["possible"] if due else t["green"] if replied else t["muted"]
+    return f'<div style="color:{color};font-weight:600;font-size:14px;margin:2px 0 8px">{html.escape(text)}</div>'
 
 
 def stat_html(items):

@@ -81,3 +81,4 @@ cover_note:
 
 # Safety net: when you open the dashboard and the list is older than this, it updates itself once.
 auto_refresh_hours: 12
+follow_up_days: 7          # an applied job with no reply after this many days shows Follow up?

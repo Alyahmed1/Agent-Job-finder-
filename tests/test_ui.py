@@ -81,3 +81,17 @@ def test_card_says_which_site_the_job_came_from():
     # LinkedIn rows store the alert email subject, which must not leak into the card
     linkedin = {**base, "source": "'junior software engineer' and similar jobs"}
     assert source_label(linkedin) == "LinkedIn" and "via LinkedIn" in card_html(linkedin)
+
+
+def test_applied_status_asks_for_a_follow_up_only_after_a_week_without_a_reply():
+    from datetime import datetime, timedelta, timezone
+    from ui import applied_status
+    now = datetime(2026, 10, 20, tzinfo=timezone.utc)
+    ago = lambda d: (now - timedelta(days=d)).isoformat()
+    row = lambda **k: {"applied_at": None, "replied": 0, **k}
+    assert applied_status(row(applied_at=ago(0)), 7, now) == ("Applied today", False)
+    assert applied_status(row(applied_at=ago(1)), 7, now) == ("Applied yesterday", False)
+    assert applied_status(row(applied_at=ago(6)), 7, now) == ("Applied 6 days ago", False)
+    assert applied_status(row(applied_at=ago(7)), 7, now) == ("Applied 7 days ago · Follow up?", True)
+    assert applied_status(row(applied_at=ago(30), replied=1), 7, now) == ("Replied", False)   # a reply removes the tag
+    assert applied_status(row(), 7, now) == ("Applied (date not saved)", False)               # marked before dates existed

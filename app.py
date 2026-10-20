@@ -78,6 +78,12 @@ def mark(job_id, status):
         st.session_state.celebrate = True
 
 
+def set_replied(job_id, replied):
+    conn = db.connect()
+    db.set_replied(conn, job_id, replied)
+    conn.close()
+
+
 def report_toasts(report):
     found = pipeline.total_new(report)
     st.toast(f"{found} new jobs found" if found else "No new jobs yet")
@@ -210,11 +216,18 @@ def cv_tailor(row, page):
 def job_card(row, page):
     with st.container(key=f"card-{page}-{row['id']}"):
         st.html(ui.card_html(row, st.session_state.theme))
+        if page == "Applied":
+            text, due = ui.applied_status(row, load_profile().get("follow_up_days", 7))
+            st.html(ui.applied_line_html(text, due, row["replied"], st.session_state.theme))
         cols = st.columns(4)
         cols[0].link_button("Apply", row["url"], icon=":material/open_in_new:", type="primary", use_container_width=True)
         if page in ("Applied", "Not interested"):
             cols[1].button("Undo" if page == "Applied" else "Restore", key=f"{page}-{row['id']}-undo",
                            icon=":material/undo:", on_click=mark, args=(row["id"], "new"), use_container_width=True)
+            if page == "Applied":
+                cols[2].button("No reply yet" if row["replied"] else "Got a reply", key=f"{page}-{row['id']}-replied",
+                               icon=":material/mark_email_read:", on_click=set_replied, args=(row["id"], not row["replied"]),
+                               use_container_width=True)
         else:
             cols[1].button("Mark applied", key=f"{page}-{row['id']}-applied", icon=":material/task_alt:",
                            on_click=mark, args=(row["id"], "applied"), use_container_width=True)
