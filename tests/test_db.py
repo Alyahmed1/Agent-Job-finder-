@@ -57,3 +57,17 @@ def test_followed_up_is_saved_and_cleared_with_the_status(tmp_path):
     assert conn.execute("SELECT followed_up_at FROM jobs WHERE id = 'a'").fetchone()["followed_up_at"]
     db.set_status(conn, "a", "new")
     assert conn.execute("SELECT followed_up_at FROM jobs WHERE id = 'a'").fetchone()["followed_up_at"] is None
+
+
+def test_a_deleted_job_is_forgotten_so_a_later_refresh_can_find_it_again(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    job = {"id": "a", "title": "t", "company": "c", "location": "Cairo", "url": "u", "source": "s",
+           "score": 50, "reason": "", "missing": ""}
+    db.save_job(conn, job)
+    db.set_status(conn, "a", "applied")
+    db.set_reply(conn, "a", "rejected")
+    assert "a" in db.known_ids(conn)
+    db.delete_job(conn, "a")
+    assert "a" not in db.known_ids(conn) and db.list_jobs(conn, "applied") == []
+    db.save_job(conn, job)                                   # the same job is posted again: it is new again
+    assert [r["status"] for r in db.list_jobs(conn, "new")] == ["new"]

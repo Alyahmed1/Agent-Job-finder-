@@ -113,6 +113,13 @@ def follow_up(row, page, name):
                "or message the recruiter.")
 
 
+def delete_job(job_id):
+    conn = db.connect()
+    db.delete_job(conn, job_id)
+    conn.close()
+    st.toast("Deleted. It shows again only if it is posted again")
+
+
 def set_reply(job_id, reply):
     conn = db.connect()
     db.set_reply(conn, job_id, reply)
@@ -259,8 +266,12 @@ def job_card(row, page):
         cols[0].link_button("View job" if page == "Applied" else "Apply", row["url"], icon=":material/open_in_new:",
                             type="primary", use_container_width=True)
         if page in ("Applied", "Not interested"):
-            cols[1].button("Undo" if page == "Applied" else "Restore", key=f"{page}-{row['id']}-undo",
+            rejected_by_company = page == "Applied" and row["reply"] == "rejected"
+            cols[1].button("Reopen" if rejected_by_company else "Undo" if page == "Applied" else "Restore", key=f"{page}-{row['id']}-undo",
                            icon=":material/undo:", on_click=mark, args=(row["id"], "new"), use_container_width=True)
+            if rejected_by_company:  # Reopen = back to your new jobs; Delete = forget the job
+                cols[3].button("Delete", key=f"{page}-{row['id']}-delete", icon=":material/delete:",
+                               on_click=delete_job, args=(row["id"],), use_container_width=True)
             if page == "Applied" and row["reply"]:
                 cols[2].button("Back to waiting", key=f"{page}-{row['id']}-waiting", icon=":material/hourglass_empty:",
                                on_click=set_reply, args=(row["id"], None), use_container_width=True)

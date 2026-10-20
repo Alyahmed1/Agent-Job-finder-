@@ -77,6 +77,12 @@ def set_status(conn, job_id, status):
     conn.commit()
 
 
+def delete_job(conn, job_id):
+    """Forget a job completely. If it is still listed on a site or in a new alert email, a later refresh finds it again as a new job."""
+    conn.execute("DELETE FROM jobs WHERE id = ?", (job_id,))
+    conn.commit()
+
+
 def set_followed_up(conn, job_id):
     conn.execute("UPDATE jobs SET followed_up_at = ? WHERE id = ?", (datetime.now(timezone.utc).isoformat(), job_id))
     conn.commit()
