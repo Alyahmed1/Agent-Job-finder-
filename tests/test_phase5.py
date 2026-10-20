@@ -207,3 +207,27 @@ def test_the_shipped_example_is_blank_but_still_works():
     # and without facts the cover-note button explains what to do instead of inventing a note
     text, error = cover.generate(EXAMPLE, JOB)
     assert text == "" and "profile.yaml" in error and "facts" in error
+
+
+def test_delete_asks_first_and_only_the_yes_button_deletes(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", tmp_path / "t.db")
+    conn = db.connect()
+    db.save_job(conn, {"id": "d1", "title": "ML Engineer", "company": "Acme", "location": "Cairo, Egypt",
+                       "url": "https://example.com/1", "source": "s", "score": 80, "reason": "Egypt +10", "missing": ""})
+    db.set_status(conn, "d1", "applied")
+    db.set_reply(conn, "d1", "rejected")
+
+    at = AppTest.from_file(APP, default_timeout=60)
+    at.session_state["page"] = "Applied"
+    at.session_state["applied_tab"] = "Rejected"
+    at.session_state["auto_checked"] = True
+    at.run()
+    assert not at.exception, [e.value for e in at.exception]
+    at.button(key="Applied-d1-delete").click().run()
+    assert at.warning and "Delete this job?" in at.warning[0].value        # asked first
+    assert db.connect().execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 1   # nothing deleted yet
+    at.button(key="Applied-d1-nodelete").click().run()                      # Cancel keeps it
+    assert db.connect().execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 1 and not at.warning
+    at.button(key="Applied-d1-delete").click().run()
+    at.button(key="Applied-d1-yesdelete").click().run()
+    assert db.connect().execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 0   # Yes, delete forgets it

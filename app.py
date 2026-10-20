@@ -113,10 +113,19 @@ def follow_up(row, page, name):
                "or message the recruiter.")
 
 
+def ask_delete(job_id):
+    st.session_state.confirm_delete = job_id
+
+
+def cancel_delete():
+    st.session_state.confirm_delete = None
+
+
 def delete_job(job_id):
     conn = db.connect()
     db.delete_job(conn, job_id)
     conn.close()
+    st.session_state.confirm_delete = None
     st.toast("Deleted. It shows again only if it is posted again")
 
 
@@ -271,7 +280,7 @@ def job_card(row, page):
                            icon=":material/undo:", on_click=mark, args=(row["id"], "new"), use_container_width=True)
             if rejected_by_company:  # Reopen = back to your new jobs; Delete = forget the job
                 cols[3].button("Delete", key=f"{page}-{row['id']}-delete", icon=":material/delete:",
-                               on_click=delete_job, args=(row["id"],), use_container_width=True)
+                               on_click=ask_delete, args=(row["id"],), use_container_width=True)
             if page == "Applied" and row["reply"]:
                 cols[2].button("Back to waiting", key=f"{page}-{row['id']}-waiting", icon=":material/hourglass_empty:",
                                on_click=set_reply, args=(row["id"], None), use_container_width=True)
@@ -288,6 +297,12 @@ def job_card(row, page):
                                on_click=mark, args=(row["id"], "saved"), use_container_width=True)
             cols[3].button("Not interested" if page != "Saved" else "Remove", key=f"{page}-{row['id']}-rejected",
                            icon=":material/close:", on_click=mark, args=(row["id"], "rejected"), use_container_width=True)
+        if page == "Applied" and row["reply"] == "rejected" and st.session_state.get("confirm_delete") == row["id"]:
+            st.warning("Delete this job? It is forgotten for good. It shows again only if it is posted again.")
+            a, b = st.columns(2)
+            a.button("Yes, delete", key=f"{page}-{row['id']}-yesdelete", icon=":material/delete:", type="primary",
+                     on_click=delete_job, args=(row["id"],), use_container_width=True)
+            b.button("Cancel", key=f"{page}-{row['id']}-nodelete", on_click=cancel_delete, use_container_width=True)
         extras = ui.card_extras(page, row["reply"] if page == "Applied" else None)
         if "tailor" in extras:
             cv_tailor(row, page)
