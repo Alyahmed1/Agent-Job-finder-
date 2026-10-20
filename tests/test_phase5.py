@@ -139,28 +139,6 @@ def test_note_panel_opens_writes_a_draft_but_saves_nothing(tmp_path, monkeypatch
     assert [r["note"] for r in db.connect().execute("SELECT note FROM jobs")] == notes_before   # nothing was saved
 
 
-def test_note_panel_shows_a_copy_ready_box_only_when_there_is_text(tmp_path, monkeypatch):
-    monkeypatch.setattr(db, "DB_PATH", tmp_path / "t.db")
-    conn = db.connect()
-    db.save_job(conn, {"id": "c1", "title": "Machine Learning Engineer", "company": "Acme", "location": "Cairo, Egypt",
-                       "url": "https://example.com/1", "source": "s", "score": 80, "reason": "Egypt +10", "missing": ""})
-    job = db.list_jobs(conn, "new")[0]
-
-    def open_panel(saved_note):
-        if saved_note:
-            db.save_note(db.connect(), job["id"], saved_note)
-        at = AppTest.from_file(APP, default_timeout=60)
-        at.session_state["page"] = "Egypt"
-        at.session_state["auto_checked"] = True
-        at.session_state["note_open"] = job["id"]
-        at.run()
-        assert not at.exception, [e.value for e in at.exception]
-        return at
-
-    assert not open_panel("").code                                            # empty note: nothing to copy
-    assert [c.value for c in open_panel("Hi, I am Aly.").code] == ["Hi, I am Aly."]
-
-
 def test_cover_note_always_names_the_required_project(monkeypatch):
     calls = []
 

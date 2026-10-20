@@ -25,7 +25,7 @@ Jobs come from your LinkedIn alert emails and free public feeds: Remotive, Remot
 | Relocation | Jobs abroad (Canada, UAE, Saudi Arabia, Europe) |
 | Saved / Applied / Not interested | Your own lists, with Restore and Undo |
 
-Each job shows a score and why (for example `Tier 1: AI / ML / GenAI +70`, `Egypt +10`, `senior role -10`). The agent also learns from what you hide, save and apply to, and can draft a short cover note (only when you press the button, and only kept if you press Save note). A copy box under the note lets you paste it into the application in one click.
+Each job shows a score and why (for example `Tier 1: AI / ML / GenAI +70`, `Egypt +10`, `senior role -10`). The agent also learns from what you hide, save and apply to, and can draft a short cover note (only when you press the button, and only kept if you press Save note).
 
 ## Setup (Windows)
 
