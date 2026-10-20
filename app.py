@@ -78,9 +78,9 @@ def mark(job_id, status):
         st.session_state.celebrate = True
 
 
-def set_replied(job_id, replied):
+def set_reply(job_id, reply):
     conn = db.connect()
-    db.set_replied(conn, job_id, replied)
+    db.set_reply(conn, job_id, reply)
     conn.close()
 
 
@@ -217,17 +217,21 @@ def job_card(row, page):
     with st.container(key=f"card-{page}-{row['id']}"):
         st.html(ui.card_html(row, st.session_state.theme))
         if page == "Applied":
-            text, due = ui.applied_status(row, load_profile().get("follow_up_days", 7))
-            st.html(ui.applied_line_html(text, due, row["replied"], st.session_state.theme))
+            text, tone = ui.applied_status(row, load_profile().get("follow_up_days", 7))
+            st.html(ui.applied_line_html(text, tone, st.session_state.theme))
         cols = st.columns(4)
         cols[0].link_button("Apply", row["url"], icon=":material/open_in_new:", type="primary", use_container_width=True)
         if page in ("Applied", "Not interested"):
             cols[1].button("Undo" if page == "Applied" else "Restore", key=f"{page}-{row['id']}-undo",
                            icon=":material/undo:", on_click=mark, args=(row["id"], "new"), use_container_width=True)
-            if page == "Applied":
-                cols[2].button("No reply yet" if row["replied"] else "Got a reply", key=f"{page}-{row['id']}-replied",
-                               icon=":material/mark_email_read:", on_click=set_replied, args=(row["id"], not row["replied"]),
-                               use_container_width=True)
+            if page == "Applied" and row["reply"]:
+                cols[2].button("Back to waiting", key=f"{page}-{row['id']}-waiting", icon=":material/hourglass_empty:",
+                               on_click=set_reply, args=(row["id"], None), use_container_width=True)
+            elif page == "Applied":
+                cols[2].button("Interview", key=f"{page}-{row['id']}-interview", icon=":material/event_available:",
+                               on_click=set_reply, args=(row["id"], "interview"), use_container_width=True)
+                cols[3].button("Rejected", key=f"{page}-{row['id']}-reject", icon=":material/block:",
+                               on_click=set_reply, args=(row["id"], "rejected"), use_container_width=True)
         else:
             cols[1].button("Mark applied", key=f"{page}-{row['id']}-applied", icon=":material/task_alt:",
                            on_click=mark, args=(row["id"], "applied"), use_container_width=True)
@@ -313,7 +317,17 @@ if not rows:
 else:
     if page in (HOME, "Remote", "Relocation"):
         st.caption("Apply opens the job on the site it came from. Come back and press Mark applied so it's tracked.")
-    for r in rows[:SHOW_LIMIT]:
-        job_card(r, page)
+    if page == "Applied":  # waiting for a reply first, then interviews, then rejections
+        shown = 0
+        for title, part in ui.applied_groups(rows):
+            if shown >= SHOW_LIMIT:
+                break
+            st.markdown(f"#### {title} · {len(part)}")
+            for r in part[:SHOW_LIMIT - shown]:
+                job_card(r, page)
+                shown += 1
+    else:
+        for r in rows[:SHOW_LIMIT]:
+            job_card(r, page)
     if len(rows) > SHOW_LIMIT:
         st.caption(f"Showing the top {SHOW_LIMIT} of {len(rows)}. Use search or minimum score to narrow down.")

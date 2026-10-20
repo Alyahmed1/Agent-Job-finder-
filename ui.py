@@ -251,21 +251,32 @@ def card_html(row, theme=DEFAULT_THEME):
 
 
 def applied_status(row, follow_days=7, now=None):
-    """('Applied 8 days ago · Follow up?', True) for the Applied tab. Replied jobs and jobs with no saved date never ask for a follow-up."""
-    if row["replied"]:
-        return "Replied", False
+    """(text, tone) for the Applied tab. Tone is 'due' (follow up), 'good' (interview), 'bad' (rejected) or 'quiet'.
+    Jobs that already replied, or have no saved date, never ask for a follow-up."""
+    if row["reply"] == "interview":
+        return "Interview", "good"
+    if row["reply"] == "rejected":
+        return "Rejected", "bad"
     if not row["applied_at"]:
-        return "Applied (date not saved)", False
+        return "Applied (date not saved)", "quiet"
     days = ((now or datetime.now(timezone.utc)) - datetime.fromisoformat(row["applied_at"])).days
     text = "Applied today" if days <= 0 else "Applied yesterday" if days == 1 else f"Applied {days} days ago"
-    due = days >= follow_days
-    return (text + " · Follow up?" if due else text), due
+    return (text + " · Follow up?", "due") if days >= follow_days else (text, "quiet")
 
 
-def applied_line_html(text, due, replied, theme=DEFAULT_THEME):
-    """The 'Applied 8 days ago · Follow up?' line, colored from the theme (amber when due, green when replied)."""
+def applied_groups(rows):
+    """[(title, rows)] for the Applied page: waiting first (oldest first), then Interview, then Rejected. Empty groups are left out."""
+    waiting = sorted((r for r in rows if not r["reply"]), key=lambda r: (r["applied_at"] is None, r["applied_at"] or ""))
+    groups = [("Waiting for a reply", waiting),
+              ("Interview", [r for r in rows if r["reply"] == "interview"]),
+              ("Rejected", [r for r in rows if r["reply"] == "rejected"])]
+    return [(title, part) for title, part in groups if part]
+
+
+def applied_line_html(text, tone, theme=DEFAULT_THEME):
+    """The 'Applied 8 days ago · Follow up?' line, colored from the theme (amber when due, green for an interview, red when rejected)."""
     t = THEMES.get(theme, THEMES[DEFAULT_THEME])
-    color = t["possible"] if due else t["green"] if replied else t["muted"]
+    color = {"due": t["possible"], "good": t["green"], "bad": t["red"]}.get(tone, t["muted"])
     return f'<div style="color:{color};font-weight:600;font-size:14px;margin:2px 0 8px">{html.escape(text)}</div>'
 
 

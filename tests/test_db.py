@@ -18,12 +18,22 @@ def test_marking_applied_saves_the_date_and_other_statuses_clear_it(tmp_path):
                        "score": 50, "reason": "", "missing": ""})
     db.set_status(conn, "a", "applied")
     row = conn.execute("SELECT * FROM jobs WHERE id = 'a'").fetchone()
-    assert row["applied_at"] and row["replied"] == 0
-    db.set_replied(conn, "a", True)
-    assert conn.execute("SELECT replied FROM jobs WHERE id = 'a'").fetchone()["replied"] == 1
-    db.set_status(conn, "a", "new")                      # Undo: the date and the reply flag go away
+    assert row["applied_at"] and row["reply"] is None
+    db.set_reply(conn, "a", "interview")
+    assert conn.execute("SELECT reply FROM jobs WHERE id = 'a'").fetchone()["reply"] == "interview"
+    db.set_reply(conn, "a", None)                         # back to waiting
+    assert conn.execute("SELECT reply FROM jobs WHERE id = 'a'").fetchone()["reply"] is None
+    db.set_reply(conn, "a", "rejected")
+    db.set_status(conn, "a", "new")                       # Undo: the date and the reply go away
     row = conn.execute("SELECT * FROM jobs WHERE id = 'a'").fetchone()
-    assert row["applied_at"] is None and row["replied"] == 0
+    assert row["applied_at"] is None and row["reply"] is None
+
+
+def test_a_reply_must_be_interview_rejected_or_none(tmp_path):
+    import pytest
+    conn = db.connect(tmp_path / "t.db")
+    with pytest.raises(ValueError):
+        db.set_reply(conn, "a", "maybe")
 
 
 def test_old_databases_get_the_follow_up_columns(tmp_path):
@@ -34,5 +44,5 @@ def test_old_databases_get_the_follow_up_columns(tmp_path):
     old.execute("INSERT INTO jobs (id, title) VALUES ('1', 't')")
     old.commit()
     old.close()
-    row = db.connect(path).execute("SELECT applied_at, replied FROM jobs").fetchone()
-    assert row["applied_at"] is None and row["replied"] == 0
+    row = db.connect(path).execute("SELECT applied_at, reply FROM jobs").fetchone()
+    assert row["applied_at"] is None and row["reply"] is None

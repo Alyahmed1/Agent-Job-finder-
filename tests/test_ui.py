@@ -88,10 +88,24 @@ def test_applied_status_asks_for_a_follow_up_only_after_a_week_without_a_reply()
     from ui import applied_status
     now = datetime(2026, 10, 20, tzinfo=timezone.utc)
     ago = lambda d: (now - timedelta(days=d)).isoformat()
-    row = lambda **k: {"applied_at": None, "replied": 0, **k}
-    assert applied_status(row(applied_at=ago(0)), 7, now) == ("Applied today", False)
-    assert applied_status(row(applied_at=ago(1)), 7, now) == ("Applied yesterday", False)
-    assert applied_status(row(applied_at=ago(6)), 7, now) == ("Applied 6 days ago", False)
-    assert applied_status(row(applied_at=ago(7)), 7, now) == ("Applied 7 days ago · Follow up?", True)
-    assert applied_status(row(applied_at=ago(30), replied=1), 7, now) == ("Replied", False)   # a reply removes the tag
-    assert applied_status(row(), 7, now) == ("Applied (date not saved)", False)               # marked before dates existed
+    row = lambda **k: {"applied_at": None, "reply": None, **k}
+    assert applied_status(row(applied_at=ago(0)), 7, now) == ("Applied today", "quiet")
+    assert applied_status(row(applied_at=ago(1)), 7, now) == ("Applied yesterday", "quiet")
+    assert applied_status(row(applied_at=ago(6)), 7, now) == ("Applied 6 days ago", "quiet")
+    assert applied_status(row(applied_at=ago(7)), 7, now) == ("Applied 7 days ago · Follow up?", "due")
+    assert applied_status(row(applied_at=ago(30), reply="interview"), 7, now) == ("Interview", "good")   # a reply removes the tag
+    assert applied_status(row(applied_at=ago(30), reply="rejected"), 7, now) == ("Rejected", "bad")
+    assert applied_status(row(), 7, now) == ("Applied (date not saved)", "quiet")                      # marked before dates existed
+
+
+def test_applied_page_groups_waiting_first_oldest_first_then_interview_then_rejected():
+    from ui import applied_groups
+    rows = [{"id": "r", "applied_at": "2026-10-01", "reply": "rejected"},
+            {"id": "w2", "applied_at": "2026-10-10", "reply": None},
+            {"id": "i", "applied_at": "2026-10-02", "reply": "interview"},
+            {"id": "w1", "applied_at": "2026-10-05", "reply": None},
+            {"id": "w0", "applied_at": None, "reply": None}]
+    groups = applied_groups(rows)
+    assert [(t, [r["id"] for r in part]) for t, part in groups] == [
+        ("Waiting for a reply", ["w1", "w2", "w0"]), ("Interview", ["i"]), ("Rejected", ["r"])]
+    assert applied_groups([{"id": "x", "applied_at": None, "reply": "interview"}]) == [("Interview", [{"id": "x", "applied_at": None, "reply": "interview"}])]  # empty groups are left out
