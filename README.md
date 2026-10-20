@@ -1,17 +1,26 @@
-# Willy's Job Finder
+# Job Hunter
 
-A free, local job-finding agent. Every morning it collects jobs, ranks them against your profile, and shows the best ones in a small dashboard.
+A job-finding agent that stays on your side: it finds and ranks jobs for you, and never applies, scrapes LinkedIn, or invents skills on your behalf.
 
-- **Free.** No paid APIs. Scoring is rule-based; the optional cover-note writer uses a local [Ollama](https://ollama.com) model.
-- **LinkedIn-safe.** It never logs in to or scrapes LinkedIn. It reads the job-alert emails LinkedIn sends you, through read-only Gmail access.
-- **Remote jobs** come from free public feeds: Remotive, Remote OK, We Work Remotely, Jobicy, Himalayas, Working Nomads. Every card links back to the site it came from.
+![The dashboard, shown with made-up jobs](docs/dashboard.png)
+
+## Why it is different
+
+- **No LinkedIn scraping.** It never logs in to LinkedIn or opens its job pages. It reads the job-alert emails LinkedIn already sends you, with read-only Gmail access.
+- **Every score has a reason.** Rule-based, not a black box: `Tier 1: AI / ML / GenAI +70`, `Egypt +10`, `senior role -10`. You can read it and change it.
+- **It learns from you.** Hide, save and apply, and the ranking adjusts.
+- **Honest CV advice.** *Tailor my CV* uses a local model to match a job to your real skills and projects. Code checks the one-line summary so it can never name a tool that is not in your CV. It gives advice only and never edits your CV.
+- **Free and local.** No paid APIs. Scoring is rules; the optional writer runs on a local [Ollama](https://ollama.com) model.
 - **You stay in control.** Apply opens the job page. Nothing is ever sent for you.
+- **Tested.** 85 automated tests.
+
+Jobs come from your LinkedIn alert emails and free public feeds: Remotive, Remote OK, We Work Remotely, Jobicy, Himalayas, Working Nomads. Every card links back to its source.
 
 ## What you get
 
 | Tab | Jobs |
 |---|---|
-| Egypt | On-site and hybrid jobs in Egypt, ranked first |
+| Home country (Egypt by default) | On-site and hybrid jobs in your home country, ranked first |
 | Remote | Remote jobs you can do from anywhere |
 | Relocation | Jobs abroad (Canada, UAE, Saudi Arabia, Europe) |
 | Saved / Applied / Not interested | Your own lists, with Restore and Undo |
@@ -58,5 +67,5 @@ copy profile.example.yaml profile.yaml     # then put your name and gmail in pro
 
 ## Notes
 
-- Tab detection uses an Egypt city list in `classify.py`; edit it for another home country.
+- Home country: Egypt by default. For another country, set `locations.priority` (its name) and `locations.home_cities` (lowercase words that appear in its job locations, like `[germany, berlin]`) in `profile.yaml`.
 - Remote feed terms: each source asks to be credited with a link back, which the cards do. Remotive asks for at most about 4 requests a day; cooldowns are in `profile.yaml`.

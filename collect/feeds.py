@@ -12,7 +12,7 @@ from urllib.parse import quote
 import requests
 from bs4 import BeautifulSoup
 
-HEADERS = {"User-Agent": "WillyJobFinder/1.0 (personal job search, not redistributed)"}
+HEADERS = {"User-Agent": "JobHunter/1.0 (personal job search, not redistributed)"}
 TIMEOUT = 30
 
 REMOTIVE_URL = "https://remotive.com/api/remote-jobs?limit=200"

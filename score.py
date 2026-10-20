@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 import learn
-from classify import EGYPT_CITIES
+from classify import home_cities, home_name
 
 SENIOR = re.compile(r"\b(senior|sr\.?|lead|principal|staff|architect)\b", re.I)
 MANAGEMENT = re.compile(r"\b(head|manager|director)\b", re.I)
@@ -46,8 +46,8 @@ def score_job(profile, job, model=None):
         points += delta
         notes.append((label, delta))
 
-    if any(city in where for city in EGYPT_CITIES):
-        add("Egypt", adj["egypt"])
+    if any(city in where for city in home_cities(profile)):
+        add(home_name(profile), adj["egypt"])
     if JUNIOR.search(title):
         add("junior-friendly", adj["junior"])
     elif MANAGEMENT.search(title):

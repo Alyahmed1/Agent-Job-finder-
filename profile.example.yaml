@@ -11,7 +11,8 @@ roles: []                          # <-- EDIT: the job titles you want. Replace 
 work_types: []                     # <-- EDIT: remote, on-site, or both, written like [remote, on-site]
 
 locations:
-  priority: Egypt                  # Egypt jobs rank first (the city list lives in classify.py)
+  priority: Egypt                  # your home country: its jobs get their own first tab and rank first
+  # home_cities: [germany, berlin, munich]   # <-- EDIT only if your home is not Egypt: lowercase words that appear in its job locations
   on_site: [Egypt]
   relocation: [Canada, United Arab Emirates, Saudi Arabia, Europe]
   remote: worldwide                # no rank, search everywhere

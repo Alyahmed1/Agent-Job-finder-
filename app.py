@@ -10,14 +10,17 @@ import pipeline
 import settings
 import tailor
 import ui
-from classify import tags
+from classify import home_cities, home_name, tags
 from score import load_profile
 from stats import tab_stats
 
 SHOW_LIMIT = 25
+PROFILE = load_profile()
+HOME = home_name(PROFILE)  # your home country (locations.priority in profile.yaml), Egypt by default
+CITIES = home_cities(PROFILE)
 # (name, icon, tag for new jobs or status), in sidebar order
 DISCOVER = [
-    ("Egypt", ":material/location_on:", "egypt"),
+    (HOME, ":material/location_on:", "egypt"),
     ("Remote", ":material/public:", "remote"),
     ("Relocation", ":material/flight_takeoff:", "relocation"),
 ]
@@ -27,15 +30,15 @@ YOUR_LIST = [
     ("Not interested", ":material/block:", "rejected"),
 ]
 SUBTITLES = {
-    "Egypt": "On-site and hybrid jobs in Egypt, ranked first",
-    "Remote": "Work from anywhere, including remote jobs open to Egypt",
+    HOME: f"On-site and hybrid jobs in {HOME}, ranked first",
+    "Remote": f"Work from anywhere, including remote jobs open to {HOME}",
     "Relocation": "Canada, UAE, Saudi Arabia, Europe",
     "Saved": "Jobs you want to come back to",
     "Applied": "Jobs you've applied to",
     "Not interested": "Jobs you hid. Press Restore if you change your mind",
 }
 EMPTY = {
-    "Egypt": "No new Egypt jobs right now. Press Refresh to check your emails.",
+    HOME: f"No new {HOME} jobs right now. Press Refresh to check your emails.",
     "Remote": "No remote jobs yet. Press Refresh to check LinkedIn and the remote job sites.",
     "Relocation": "No relocation jobs yet. Your Canada, Saudi and Europe alerts send their first lists soon.",
     "Saved": "Nothing saved yet. Press Save on a job you like.",
@@ -224,9 +227,9 @@ def job_card(row, page):
         cover_note(row, page)
 
 
-st.set_page_config(page_title="Willy's Job Finder", page_icon=":material/work:", layout="wide",
+st.set_page_config(page_title="Job Hunter", page_icon=":material/work:", layout="wide",
                    initial_sidebar_state="expanded")
-st.session_state.setdefault("page", "Egypt")
+st.session_state.setdefault("page", HOME)
 st.session_state.setdefault("theme", settings.load_theme(ui.THEMES, ui.DEFAULT_THEME))
 theme = st.session_state.theme
 st.markdown(f"<style>{ui.build_css(theme)}</style>", unsafe_allow_html=True)
@@ -248,12 +251,12 @@ conn = db.connect()
 new_jobs, saved, applied, rejected = (db.list_jobs(conn, s) for s in ("new", "saved", "applied", "rejected"))
 last_refresh = db.get_meta(conn, "last_refresh")
 conn.close()
-by_tag = {tag: [r for r in new_jobs if tag in tags(r["location"])] for _, _, tag in DISCOVER}
+by_tag = {tag: [r for r in new_jobs if tag in tags(r["location"], CITIES)] for _, _, tag in DISCOVER}
 by_list = {"Saved": saved, "Applied": applied, "Not interested": rejected}
 counts = {name: len(by_tag[tag]) for name, _, tag in DISCOVER} | {name: len(r) for name, r in by_list.items()}
 
 with st.sidebar:
-    st.html('<div class="jf-brand"><div class="jf-logo">W</div><span>Willy\'s Job Finder</span></div>')
+    st.html('<div class="jf-brand"><div class="jf-logo">J</div><span>Job Hunter</span></div>')
     st.html('<div class="jf-nav-label">Discover</div>')
     for name, icon, _ in DISCOVER:
         nav_button(name, icon, counts[name])
@@ -280,7 +283,7 @@ with st.container(key="topbar"):
         report_toasts(report)
         st.rerun()
 
-st.html(ui.stat_html(tab_stats(page, tag, rows, saved, applied)))
+st.html(ui.stat_html(tab_stats(page, tag, rows, saved, applied, CITIES, HOME)))
 
 f_search, f_score, f_sort = st.columns([3, 2, 2], vertical_alignment="bottom")
 query = f_search.text_input("Search", placeholder="Search title or company", key="q",
@@ -295,7 +298,7 @@ if sort == "Newest":
 if not rows:
     st.info(EMPTY[page] if not (query or min_score) else "No jobs match these filters. Lower the minimum score or clear the search.")
 else:
-    if page in ("Egypt", "Remote", "Relocation"):
+    if page in (HOME, "Remote", "Relocation"):
         st.caption("Apply opens the job on the site it came from. Come back and press Mark applied so it's tracked.")
     for r in rows[:SHOW_LIMIT]:
         job_card(r, page)

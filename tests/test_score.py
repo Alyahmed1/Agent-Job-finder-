@@ -80,3 +80,11 @@ def test_linux_without_ai_is_not_boosted():
 def test_stack_mismatch_and_no_match_rank_low():
     assert s("Senior .NET Developer") < 30
     assert s("IT Coordinator") < 30
+
+
+def test_home_bonus_follows_the_profile_country():
+    from score import load_profile, score_job
+    profile = load_profile() | {"locations": {"priority": "Germany", "home_cities": ["berlin"]}}
+    berlin = score_job(profile, {"title": "Machine Learning Engineer", "location": "Berlin"})
+    cairo = score_job(profile, {"title": "Machine Learning Engineer", "location": "Cairo, Egypt"})
+    assert "Germany +10" in berlin["reason"] and "Egypt" not in cairo["reason"]
