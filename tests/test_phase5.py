@@ -93,7 +93,7 @@ def test_generate_returns_text_or_a_friendly_error(monkeypatch):
 
     monkeypatch.setattr(cover.requests, "post", lambda *a, **k: Resp())
     text, error = cover.generate(PROFILE, JOB)
-    assert error == "" and text.startswith("Hi, I am Aly.") and MUST in text   # the required project is always added
+    assert error == "" and text.startswith("Hi,\n\nI am applying for the") and "I am Aly." in text and MUST in text   # the required project is always added
 
     def down(*a, **k):
         raise cover.requests.ConnectionError("no ollama")
@@ -231,3 +231,35 @@ def test_delete_asks_first_and_only_the_yes_button_deletes(tmp_path, monkeypatch
     at.button(key="Applied-d1-delete").click().run()
     at.button(key="Applied-d1-yesdelete").click().run()
     assert db.connect().execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 0   # Yes, delete forgets it
+
+
+def test_finalize_drops_invented_job_fit_claims_and_adds_the_closing_line():
+    profile = {"name": "Aly Ahmed", "summary": "ML engineer.", "cover_note": {
+        "always_mention": {"name": "Legato", "sentence": "In a personal project, I built Legato, an AI legal platform."},
+        "facts": ["PERSONAL PROJECT: built a Meeting Intelligence System, an offline multi-agent pipeline that turns meetings into action items."]}}
+    raw = ("Hi,\n\nI am applying for the AI Policy, Ethics & Compliance Analyst role at Alignerr. "
+           "I developed a Meeting Intelligence System, an offline multi-agent pipeline that automates meetings into action items. "
+           "These projects align well with the responsibilities of the role, as they involve understanding and implementing ethical standards.\n\n"
+           "Best regards,\nAly Ahmed")
+    note = cover.finalize(raw, profile, {"title": "AI Policy Analyst", "company": "Alignerr"})
+    assert "ethical standards" not in note and "Meeting Intelligence System" in note       # invented claim gone, true fact kept
+    assert note.startswith("Hi,\n\nI am applying for the AI Policy")                       # opener untouched
+    assert "In a personal project, I built Legato" in note                                  # required project added
+    assert note.endswith("I would be glad to talk.\n\nBest regards,\nAly Ahmed")           # closing line added before the sign-off
+    assert note.index("Legato") < note.index("glad to talk")
+
+
+def test_finalize_keeps_a_closing_line_the_model_wrote():
+    profile = {"name": "Aly", "summary": "", "cover_note": {"facts": ["built Legato"], "always_mention": {"name": "Legato", "sentence": "I built Legato."}}}
+    note = cover.finalize("Hi,\n\nI am applying for X at Y. I built Legato. I would love to chat.\n\nBest regards,\nAly", profile, {"title": "X", "company": "Y"})
+    assert note.count("chat") == 1 and "glad to talk" not in note
+
+
+def test_finalize_never_credits_a_personal_project_to_an_employer():
+    facts = ["WORK (Telecom Egypt, 2025): AI Intern.", "PERSONAL PROJECT (not for an employer): built Legato, an AI legal platform.",
+             "PERSONAL PROJECT (not for an employer): built a Meeting Intelligence System, an offline pipeline for meetings."]
+    profile = {"name": "Aly", "summary": "", "cover_note": {"facts": facts, "always_mention": {"name": "Legato", "sentence": "I built Legato."}}}
+    raw = ("Hi,\n\nIn my internship at Telecom Egypt, I built a Meeting Intelligence System, an offline pipeline for meetings. "
+           "I built Legato, an AI legal platform.\n\nBest regards,\nAly")
+    note = cover.finalize(raw, profile, {"title": "T", "company": "C"})
+    assert "Telecom Egypt" not in note and "Meeting Intelligence" not in note and "Legato" in note
