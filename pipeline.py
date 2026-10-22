@@ -94,7 +94,8 @@ def refresh(conn, profile, days=2, force=False):
     except Exception as exc:
         report = {"LinkedIn": f"failed ({type(exc).__name__})"}
     report.update(refresh_feeds(conn, profile, force=force))
-    db.set_meta(conn, "last_refresh", datetime.now(timezone.utc).isoformat())
+    if not all(isinstance(v, str) and v.startswith("failed") for v in report.values()):
+        db.set_meta(conn, "last_refresh", datetime.now(timezone.utc).isoformat())  # all failed (no network) -> stay stale, so the next open retries
     return report
 
 

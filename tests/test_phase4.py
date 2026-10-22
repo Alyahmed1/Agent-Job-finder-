@@ -33,6 +33,19 @@ def test_last_refresh_time_is_remembered(tmp_path, monkeypatch):
     assert db.get_meta(conn, "last_refresh")
 
 
+def test_a_refresh_where_every_source_failed_is_not_remembered(tmp_path, monkeypatch):
+    conn = db.connect(tmp_path / "t.db")
+
+    def offline(*_):
+        raise ConnectionError("no network")
+
+    monkeypatch.setattr(pipeline, "refresh_linkedin", offline)
+    monkeypatch.setattr(pipeline, "SOURCES", {"Remotive": offline})
+    report = pipeline.refresh(conn, load_profile())
+    assert report == {"LinkedIn": "failed (ConnectionError)", "Remotive": "failed (ConnectionError)"}
+    assert db.get_meta(conn, "last_refresh") is None  # so the dashboard retries on the next open
+
+
 def test_updated_label(monkeypatch):
     import importlib.util
     from pathlib import Path

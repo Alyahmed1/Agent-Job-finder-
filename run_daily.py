@@ -21,6 +21,7 @@ def main():
     else:
         report = pipeline.refresh(conn, profile, days=args.days, force=args.force)
         print(f"{pipeline.total_new(report)} new jobs")
+        main.report = report  # lets scheduled_run see whether every source failed
         for source, result in report.items():
             print(f"  {source}: {result}")
 
